@@ -23,6 +23,21 @@ password pill and animations.
 
 ## Install
 
+### Package (Arch)
+
+```sh
+makepkg -si               # from a clone, builds lyne-sddm-git from GitHub
+lyne-sddm --dry-run       # then, as your user: see the setup steps
+lyne-sddm                 # create your synced dir and select the theme
+```
+
+pacman owns the theme files; `lyne-sddm` (this repo's `install.sh`) only adds
+what a package can't know: the `user/` dir owned by you and
+`/etc/sddm.conf.d/lyne.conf`. `lyne-sddm --uninstall` undoes that, and
+removing the package cleans both up too.
+
+### Script
+
 ```sh
 ./install.sh --dry-run    # see every step first
 ./install.sh              # install or update (asks for sudo)

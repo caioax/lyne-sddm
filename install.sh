@@ -13,12 +13,17 @@
 # to it). /etc/sddm.conf.d/lyne.conf selects the theme; removing it brings
 # back whatever the other SDDM config files select.
 #
+# The lyne-sddm-git package installs this script as `lyne-sddm`. Without a
+# theme/ dir next to it, it leaves the theme files to pacman and only sets up
+# user/ and lyne.conf (--uninstall removes just those).
+#
 # Testing: LYNE_SDDM_PREFIX=/some/dir puts every system path under that dir
 # and runs the steps as you, without sudo.
 set -euo pipefail
 
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 src="$repo/theme"
+cmd=$(basename "$0")
 name=lyne
 prefix=${LYNE_SDDM_PREFIX:-}
 themes=$prefix/usr/share/sddm/themes
@@ -28,9 +33,12 @@ conf=$confdir/lyne.conf
 dry=0
 uninstall=0
 owner=${SUDO_USER:-$USER}
+# Run from the package: the theme files belong to pacman
+packaged=0
+[[ -f $src/metadata.desktop ]] || packaged=1
 
 usage() {
-    sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     exit "${1:-0}"
 }
 
@@ -134,6 +142,11 @@ if ((uninstall)); then
         exit 0
     fi
 
+    if ((packaged)) && [[ ! -e $conf && ! -e $dest/user ]]; then
+        say "Nothing to remove: no $conf nor $dest/user"
+        exit 0
+    fi
+
     after=$(effective_theme 0)
     after_theme=${after%%|*}
     say "After removal SDDM uses $(describe "$after")"
@@ -144,8 +157,13 @@ if ((uninstall)); then
 
     say "Removing $conf"
     root rm -f "$conf"
-    say "Removing $dest"
-    root rm -rf "$dest"
+    if ((packaged)); then
+        say "Removing $dest/user (the theme itself stays: pacman -R lyne-sddm-git)"
+        root rm -rf "$dest/user"
+    else
+        say "Removing $dest"
+        root rm -rf "$dest"
+    fi
     say "Done. SDDM was not restarted: the change shows on the next login screen"
     exit 0
 fi
@@ -153,7 +171,17 @@ fi
 # ============================================================================
 # INSTALL / UPDATE
 # ============================================================================
-[[ -f $src/metadata.desktop ]] || die "theme dir not found: $src"
+if ((packaged)); then
+    [[ -f $dest/metadata.desktop ]] || die "theme not found in $dest: install lyne-sddm-git first"
+    theme_conf=$dest/theme.conf
+else
+    # pacman would fight over files a package owns
+    if [[ -z $prefix ]] && command -v pacman >/dev/null &&
+        package=$(pacman -Qqo "$dest/Main.qml" 2>/dev/null); then
+        die "$dest belongs to the $package package: update it with pacman and run lyne-sddm for the setup"
+    fi
+    theme_conf=$src/theme.conf
+fi
 id "$owner" &>/dev/null || die "no such user: $owner"
 group=$(id -gn "$owner")
 
@@ -161,14 +189,16 @@ command -v sddm-greeter-qt6 >/dev/null ||
     warn "sddm-greeter-qt6 not found: the theme needs SDDM built with Qt6"
 
 # The greeter runs as the sddm user: only system fonts reach it
-font=$(sed -n 's/^font=//p' "$src/theme.conf" | tail -1)
+font=$(sed -n 's/^font=//p' "$theme_conf" | tail -1)
 system_fonts=$(fc-list : file family | grep -E "^/usr/(share|local/share)/fonts/" || true)
 if [[ $system_fonts != *"$font"* ]]; then
     warn "font \"$font\" is not in /usr/share/fonts: the greeter can't use it"
     warn "on Arch: sudo pacman -S ttf-cascadia-code-nerd"
 fi
 
-if [[ -d $dest ]]; then
+if ((packaged)); then
+    say "Theme files: $dest (from the package)"
+elif [[ -d $dest ]]; then
     say "Updating $dest (keeping user/)"
     root find "$dest" -mindepth 1 -maxdepth 1 ! -name user ! -name theme.conf.user -exec rm -rf {} +
 else
@@ -177,7 +207,9 @@ else
 fi
 
 # Theme files, without any local theme.conf.user or user/ from testing
-if ((dry)); then
+if ((packaged)); then
+    :
+elif ((dry)); then
     (cd "$src" && find . -type f ! -path './user/*' ! -name theme.conf.user | sort) |
         sed "s|^\./|   [dry-run] copy $dest/|"
 else
@@ -199,12 +231,13 @@ if [[ ! -e $dest/user/theme.conf.user ]]; then
 # Empty: the theme's defaults (Tokyo Night).
 EOF
 fi
-root ln -sfn user/theme.conf.user "$dest/theme.conf.user"
+# The package ships this link already
+((packaged)) || root ln -sfn user/theme.conf.user "$dest/theme.conf.user"
 
 say "Selecting the theme in $conf"
 root install -d -m 755 "$confdir"
 root_write "$conf" 644 <<EOF
-# Written by lyne-sddm (install.sh); ./install.sh --uninstall removes it
+# Written by lyne-sddm; "$cmd --uninstall" removes it
 [Theme]
 Current=$name
 EOF
@@ -216,4 +249,8 @@ if [[ ${result%%|*} != "$name" ]]; then
 fi
 
 say "Done. SDDM was not restarted: the theme shows on the next login screen"
-say "Try it now: ./test.sh -t $dest"
+if ((packaged)); then
+    say "Try it now: sddm-greeter-qt6 --test-mode --theme $dest"
+else
+    say "Try it now: ./test.sh -t $dest"
+fi

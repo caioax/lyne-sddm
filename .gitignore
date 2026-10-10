@@ -2,3 +2,9 @@ screenshots/
 theme/theme.conf.user
 theme/user/
 CLAUDE.md
+
+# makepkg
+/src/
+/pkg/
+/lyne-sddm/
+*.pkg.tar.*

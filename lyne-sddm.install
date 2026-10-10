@@ -1,0 +1,21 @@
+# The theme files belong to the package; the synced user/ dir and
+# /etc/sddm.conf.d/lyne.conf come from `lyne-sddm`, run by the user
+
+_theme=/usr/share/sddm/themes/lyne
+_conf=/etc/sddm.conf.d/lyne.conf
+
+post_install() {
+    echo ":: lyne-sddm: as your user, run 'lyne-sddm --dry-run' and then"
+    echo "   'lyne-sddm' to create the synced dir ($_theme/user) and"
+    echo "   select the theme in $_conf. SDDM is not restarted."
+}
+
+pre_remove() {
+    # Copies written by lyne-dots, unknown to pacman
+    rm -rf "$_theme/user"
+    # Only the file lyne-sddm wrote, never a hand-written one
+    if grep -q '^# Written by lyne-sddm' "$_conf" 2>/dev/null; then
+        rm -f "$_conf"
+        echo ":: lyne-sddm: removed $_conf (SDDM goes back to the theme the other files select)"
+    fi
+}
