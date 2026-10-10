@@ -6,6 +6,7 @@
 #
 #   ./test.sh                         # open theme/ and take screenshots
 #   ./test.sh -c light.conf           # same, with light.conf as theme.conf.user
+#   ./test.sh -a face.png             # as the synced avatar of $USER
 #   ./test.sh -r                      # real mode: no testMode=true (see theme.conf)
 #   ./test.sh -k                      # keep the greeter open after the shots
 #   ./test.sh -n                      # no screenshots, just open it
@@ -18,6 +19,7 @@ set -euo pipefail
 repo=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 theme="$repo/theme"
 user_conf=""
+avatar=""
 delay=2
 shots=1
 keep=0
@@ -26,14 +28,15 @@ steps=()
 out="$repo/screenshots"
 
 usage() {
-    sed -n '2,15p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,16p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     exit "${1:-0}"
 }
 
-while getopts "t:c:d:o:s:knrh" opt; do
+while getopts "t:c:a:d:o:s:knrh" opt; do
     case $opt in
     t) theme=$(realpath "$OPTARG") ;;
     c) user_conf=$(realpath "$OPTARG") ;;
+    a) avatar=$(realpath "$OPTARG") ;;
     d) delay=$OPTARG ;;
     o) out=$OPTARG ;;
     k) keep=1 ;;
@@ -60,9 +63,12 @@ else
     echo "[General]" >"$conf"
 fi
 ((test_mode)) && echo "testMode=true" >>"$conf"
+[[ -n $avatar ]] && cp "$avatar" "$tmp/theme/avatars/$USER.png"
 
 start=$(date +%s)
-sddm-greeter-qt6 --test-mode --theme "$tmp/theme" >/dev/null 2>&1 &
+# On Wayland the OpenGL backend gets an RGB565 surface (banding in the blur);
+# the real greeter runs on X11 with 8 bits per channel, and Vulkan matches it
+QSG_RHI_BACKEND=${QSG_RHI_BACKEND:-vulkan} sddm-greeter-qt6 --test-mode --theme "$tmp/theme" >/dev/null 2>&1 &
 pid=$!
 cleanup() {
     kill "$pid" 2>/dev/null || true

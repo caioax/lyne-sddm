@@ -49,7 +49,9 @@ ColumnLayout {
         readonly property real ringGap: Tokens.padding
 
         implicitWidth: Tokens.powerBoxSize + ringGap * 2
-        implicitHeight: implicitWidth
+        // The lock screen's square button counts the gap twice in height
+        // (its icon box and the button both add it): kept for parity
+        implicitHeight: Tokens.powerBoxSize + ringGap * 4
         scale: mouse.pressed ? 0.96 : 1
 
         Behavior on scale {
@@ -89,7 +91,9 @@ ColumnLayout {
 
         // Fills up while the countdown runs
         Loader {
-            anchors.fill: parent
+            anchors.centerIn: parent
+            width: button.implicitWidth
+            height: width
             active: button.pending
 
             sourceComponent: ProgressRing {
