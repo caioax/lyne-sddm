@@ -57,13 +57,18 @@ done
 tmp=$(mktemp -d)
 cp -r "$theme" "$tmp/theme"
 conf="$tmp/theme/theme.conf.user"
+# -c replaces it; otherwise an installed theme keeps its synced one
 if [[ -n $user_conf ]]; then
+    rm -f "$conf"
     cp "$user_conf" "$conf"
-else
+elif [[ ! -e $conf ]]; then
     echo "[General]" >"$conf"
 fi
 ((test_mode)) && echo "testMode=true" >>"$conf"
-[[ -n $avatar ]] && cp "$avatar" "$tmp/theme/avatars/$USER.png"
+if [[ -n $avatar ]]; then
+    mkdir -p "$tmp/theme/user/avatars"
+    cp "$avatar" "$tmp/theme/user/avatars/$USER.png"
+fi
 
 start=$(date +%s)
 # On Wayland the OpenGL backend gets an RGB565 surface (banding in the blur);

@@ -3,7 +3,7 @@ import QtQuick
 import QtQuick.Effects
 import ".."
 
-// The user's picture: avatars/<user>.png in the theme (written by the
+// The user's picture: user/avatars/<user>.png in the theme (written by the
 // lyne-dots sync), then the account icon unless it's SDDM's default face,
 // then a silhouette
 Item {
@@ -15,7 +15,7 @@ Item {
     readonly property var sources: {
         if (!user)
             return [];
-        const list = [Tokens.path("avatars/" + user.name + ".png")];
+        const list = [Tokens.path("user/avatars/" + user.name + ".png")];
         if (user.icon !== "" && !user.icon.endsWith("/faces/.face.icon"))
             list.push(user.icon);
         return list;

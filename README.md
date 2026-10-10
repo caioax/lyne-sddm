@@ -21,6 +21,26 @@ password pill and animations.
 - SDDM 0.21+ built with Qt6 (`sddm` on Arch)
 - `ttf-cascadia-code-nerd` (the greeter only sees fonts in `/usr/share/fonts`)
 
+## Install
+
+```sh
+./install.sh --dry-run    # see every step first
+./install.sh              # install or update (asks for sudo)
+```
+
+It copies `theme/` to `/usr/share/sddm/themes/lyne` and selects it in
+`/etc/sddm.conf.d/lyne.conf`. A `Current=` in a config file read after that
+one (or in `/etc/sddm.conf`) still wins: the installer warns about it. SDDM is
+never restarted; the theme shows on the next login screen.
+
+```sh
+./install.sh --uninstall --dry-run
+./install.sh --uninstall  # SDDM goes back to the theme the other files select
+```
+
+To follow the lyne-dots palette, wallpaper and avatar, lyne-dots writes into
+the theme's `user/` dir, owned by you: see [docs/sync.md](docs/sync.md).
+
 ## Testing
 
 Run the greeter in test mode without touching the system; it takes a
@@ -50,9 +70,9 @@ and logins fail unless the password is `test`.
 ## Configuration
 
 Every color and size comes from `theme/theme.conf` (see the comments
-there); light and dark are just palettes, with no separate mode switch. Put
-your overrides in `theme.conf.user` next to it: SDDM reads it on top of
-`theme.conf`, and it is the file lyne-dots writes when syncing its palette.
+there); light and dark are just palettes, with no separate mode switch.
+Overrides go in `user/theme.conf.user` of the installed theme: SDDM reads it
+on top of `theme.conf`, and it is the file lyne-dots writes when syncing.
 
 ## License
 
