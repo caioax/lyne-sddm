@@ -1,0 +1,13 @@
+[SddmGreeterTheme]
+Name=lyne
+Description=SDDM theme for lyne-dots, sibling of its Quickshell lock screen
+Author=caioax
+Website=https://github.com/caioax/lyne-sddm
+License=GPL-3.0
+Type=sddm-theme
+Version=0.1
+MainScript=Main.qml
+ConfigFile=theme.conf
+Theme-Id=lyne
+Theme-API=2.0
+QtVersion=6
