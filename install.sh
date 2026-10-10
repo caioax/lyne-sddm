@@ -224,6 +224,8 @@ if [[ -n $prefix ]]; then
 else
     root install -d -m 755 -o "$owner" -g "$group" "$dest/user" "$dest/user/avatars"
 fi
+# lyne-dots writes this same text when its sync is turned off (docs/sync.md):
+# keep them identical
 if [[ ! -e $dest/user/theme.conf.user ]]; then
     root_write "$dest/user/theme.conf.user" 644 "$owner:$group" <<'EOF'
 [General]

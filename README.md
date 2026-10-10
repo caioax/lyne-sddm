@@ -54,7 +54,9 @@ never restarted; the theme shows on the next login screen.
 ```
 
 To follow the lyne-dots palette, wallpaper and avatar, lyne-dots writes into
-the theme's `user/` dir, owned by you: see [docs/sync.md](docs/sync.md).
+the theme's `user/` dir, owned by you: `lyne sddm apply` (run by the shell
+on every theme, wallpaper or avatar change) and `lyne sddm status`, or
+Settings › Theme › Login screen. See [docs/sync.md](docs/sync.md).
 
 ## Testing
 
