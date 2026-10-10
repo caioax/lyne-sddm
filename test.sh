@@ -57,6 +57,8 @@ done
 tmp=$(mktemp -d)
 cp -r "$theme" "$tmp/theme"
 conf="$tmp/theme/theme.conf.user"
+# An installed theme links it into user/, which may not exist yet
+[[ -L $conf ]] && mkdir -p "$(dirname "$(readlink -m "$conf")")"
 # -c replaces it; otherwise an installed theme keeps its synced one
 if [[ -n $user_conf ]]; then
     rm -f "$conf"
@@ -101,6 +103,10 @@ shot() {
         file="$out/$stamp-${1:+$1-}mon$mon.png"
         grim -g "$pos $size" "$file"
         echo "$file"
+        # Vulkan breaks when the GPU driver was updated without a reboot
+        if command -v magick >/dev/null && [[ $(magick "$file" -format '%[fx:mean==0]' info:) == 1 ]]; then
+            echo "warning: $file is all black; try QSG_RHI_BACKEND=opengl ./test.sh" >&2
+        fi
     done
 }
 

@@ -1,7 +1,7 @@
 # Maintainer: caioax <acaio9677@gmail.com>
 pkgname=lyne-sddm-git
 _name=lyne-sddm
-pkgver=r0
+pkgver=r5.76890e8
 pkgrel=1
 pkgdesc='SDDM theme for lyne-dots, sibling of its Quickshell lock screen'
 arch=('any')
