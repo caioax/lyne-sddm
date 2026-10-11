@@ -35,7 +35,11 @@ lyne-dots does, in its `SddmService` and the `lyne sddm` command:
   theme, wallpaper, avatar or background opacity change.
 - `lyne sddm status` tells whether the theme is installed, selected and
   synced, and whether `/var/lib/lyne-sddm` exists and is writable (if not:
-  run `lyne-sddm`).
+  run `lyne-sddm`); `apply` fails with the same message. "Installed" means
+  `/usr/share/sddm/themes/lyne/metadata.desktop` exists: keep that file and
+  its path.
+- The selected theme is the last `Current=` read from
+  `/usr/lib/sddm/sddm.conf.d`, `/etc/sddm.conf.d` and `/etc/sddm.conf`.
 - Settings › Theme › Login screen turns the sync on and off.
 
 ## Who creates and removes the dir
@@ -45,7 +49,9 @@ lyne-sddm, never lyne-dots:
 - `lyne-sddm` creates `/var/lib/lyne-sddm` and `avatars/` owned by the user
   who runs it, and the empty `theme.conf.user` below if there is none. Run
   by another user, it hands the dir over to them.
-- It deletes the old `/usr/share/sddm/themes/lyne/user/` dir of earlier
+- lyne-dots never creates the dir; it only recreates `avatars/` (755) when
+  the dir is its own and that subdir went missing.
+- `lyne-sddm` deletes the old `/usr/share/sddm/themes/lyne/user/` dir of earlier
   versions without copying anything: `lyne sddm apply` writes it all again.
 - `lyne-sddm --uninstall` and removing the package delete
   `/var/lib/lyne-sddm`.
