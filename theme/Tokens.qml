@@ -30,6 +30,11 @@ QtObject {
     readonly property color cardBorderColor: Qt.alpha(surface2Color, 0.6)
 
     // ========================================================================
+    // SYNCED DATA
+    // ========================================================================
+    readonly property string dataDir: _string("dataDir")
+
+    // ========================================================================
     // WALLPAPER
     // ========================================================================
     readonly property url wallpaper: path(_string("wallpaper"))

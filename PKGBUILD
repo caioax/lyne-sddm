@@ -31,11 +31,11 @@ package() {
 
     install -d "$dest"
     cp -r --no-preserve=ownership,mode theme/. "$dest/"
-    # user/ is created per user by `lyne-sddm`, never by the package
-    rm -rf "$dest/user" "$dest/theme.conf.user"
     find "$dest" -type d -exec chmod 755 {} +
     find "$dest" -type f -exec chmod 644 {} +
-    ln -s user/theme.conf.user "$dest/theme.conf.user"
+    # SDDM only reads theme.conf.user next to theme.conf; the real file lives
+    # in the user-owned dir that `lyne-sddm` creates (dangling until then)
+    ln -s /var/lib/lyne-sddm/theme.conf.user "$dest/theme.conf.user"
 
     install -Dm755 install.sh "$pkgdir/usr/bin/lyne-sddm"
     install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
