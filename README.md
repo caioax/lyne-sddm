@@ -28,13 +28,17 @@ password pill and animations.
 ```sh
 makepkg -si               # from a clone, builds lyne-sddm-git from GitHub
 lyne-sddm --dry-run       # then, as your user: see the setup steps
-lyne-sddm                 # create your synced dir and select the theme
+lyne-sddm                 # create your synced dir and select the theme (asks for sudo)
 ```
 
 pacman owns the theme files; `lyne-sddm` (this repo's `install.sh`) only adds
-what a package can't know: the `user/` dir owned by you and
+what a package can't know: `/var/lib/lyne-sddm` owned by you and
 `/etc/sddm.conf.d/lyne.conf`. `lyne-sddm --uninstall` undoes that, and
 removing the package cleans both up too.
+
+Coming from a version that kept the synced files in the theme's `user/`
+dir: run `lyne-sddm` again (it removes that dir), then `lyne sddm apply` in
+lyne-dots. Until then the theme shows its defaults.
 
 ### Script
 
@@ -54,9 +58,17 @@ never restarted; the theme shows on the next login screen.
 ```
 
 To follow the lyne-dots palette, wallpaper and avatar, lyne-dots writes into
-the theme's `user/` dir, owned by you: `lyne sddm apply` (run by the shell
-on every theme, wallpaper or avatar change) and `lyne sddm status`, or
+`/var/lib/lyne-sddm`, owned by you: `lyne sddm apply` (run by the shell on
+every theme, wallpaper or avatar change) and `lyne sddm status`, or
 Settings › Theme › Login screen. See [docs/sync.md](docs/sync.md).
+
+## Several users
+
+A machine has one login screen, so one look: the owner of
+`/var/lib/lyne-sddm` (whoever ran `lyne-sddm` last) sets it for everyone,
+through their lyne-dots. Only that user's avatar is synced; the others show
+their account icon (AccountsService) or a silhouette. Running `lyne-sddm` as
+another user hands the dir, and the look, over to them.
 
 ## Testing
 
@@ -67,6 +79,9 @@ screenshot of each monitor with `grim` (needs Hyprland, `jq` and `grim`):
 ./test.sh             # screenshots go to screenshots/
 ./test.sh -k          # keep it open after the shots
 ./test.sh -c my.conf  # try a theme.conf.user (palette, light mode...)
+./test.sh -a face.png # with this avatar
+./test.sh -D dir      # with a synced dir (its theme.conf.user and avatars)
+./test.sh -t /usr/share/sddm/themes/lyne   # the installed theme
 ./test.sh -s keys:a,b,Return -s wait:1 -s shot:failed   # scripted keys
 ./test.sh -h
 ```
@@ -88,8 +103,9 @@ and logins fail unless the password is `test`.
 
 Every color and size comes from `theme/theme.conf` (see the comments
 there); light and dark are just palettes, with no separate mode switch.
-Overrides go in `user/theme.conf.user` of the installed theme: SDDM reads it
-on top of `theme.conf`, and it is the file lyne-dots writes when syncing.
+Overrides go in `/var/lib/lyne-sddm/theme.conf.user`: SDDM reads it on top
+of `theme.conf` (through a symlink in the theme dir), and it is the file
+lyne-dots writes when syncing.
 
 ## License
 
