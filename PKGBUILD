@@ -7,7 +7,8 @@ pkgdesc='SDDM theme for lyne-dots, sibling of its Quickshell lock screen'
 arch=('any')
 url='https://github.com/caioax/lyne-sddm'
 license=('GPL-3.0-only')
-depends=('sddm' 'qt6-declarative' 'ttf-cascadia-code-nerd')
+# namcap can't see sudo (run by lyne-sddm), sddm and the font (theme QML)
+depends=('bash' 'sudo' 'sddm' 'qt6-declarative' 'ttf-cascadia-code-nerd')
 makedepends=('git')
 optdepends=('qt6-imageformats: webp wallpapers')
 provides=("$_name")
@@ -20,7 +21,7 @@ pkgver() {
     cd "$_name"
     (
         set -o pipefail
-        git describe --long --abbrev=7 2>/dev/null | sed 's/\([^-]*-g\)/r\1/;s/-/./g' ||
+        git describe --long --abbrev=7 2>/dev/null | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g' ||
             printf 'r%s.%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
     )
 }

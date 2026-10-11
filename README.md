@@ -25,8 +25,11 @@ password pill and animations.
 
 ### Package (Arch)
 
+`lyne-sddm-git` is not on the AUR yet; until it is, build it from a clone:
+
 ```sh
-makepkg -si               # from a clone, builds lyne-sddm-git from GitHub
+git clone https://github.com/caioax/lyne-sddm && cd lyne-sddm
+makepkg -si               # builds lyne-sddm-git from GitHub
 lyne-sddm --dry-run       # then, as your user: see the setup steps
 lyne-sddm                 # create your synced dir and select the theme (asks for sudo)
 ```
@@ -106,6 +109,9 @@ there); light and dark are just palettes, with no separate mode switch.
 Overrides go in `/var/lib/lyne-sddm/theme.conf.user`: SDDM reads it on top
 of `theme.conf` (through a symlink in the theme dir), and it is the file
 lyne-dots writes when syncing.
+
+Maintainers: [docs/aur.md](docs/aur.md) covers checking and publishing the
+package.
 
 ## License
 
