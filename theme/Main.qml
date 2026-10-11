@@ -19,9 +19,25 @@ Item {
     // The keyboard goes to the active window: make it the primary one, even
     // with the pointer on another screen (X11 without a window manager).
     // The view only gets its window after this item completes
-    Window.onWindowChanged: {
+    Window.onWindowChanged: activate()
+
+    function activate() {
         if (primaryScreen)
             Window.window?.requestActivate();
+    }
+
+    // The other screens' windows map after this one and the focus can land
+    // there: ask again until the primary window is active, for a few seconds
+    Timer {
+        property int tries: 0
+
+        interval: 250
+        repeat: true
+        running: primaryScreen && !(root.Window.window?.active ?? false) && tries < 20
+        onTriggered: {
+            tries++;
+            root.activate();
+        }
     }
 
     Background {
