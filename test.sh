@@ -7,6 +7,8 @@
 #   ./test.sh                         # open theme/ and take screenshots
 #   ./test.sh -c light.conf           # same, with light.conf as theme.conf.user
 #   ./test.sh -a face.png             # as the synced avatar of $USER
+#   ./test.sh -D /tmp/data            # synced dir to use instead of dataDir
+#                                     # (its theme.conf.user and avatars)
 #   ./test.sh -r                      # real mode: no testMode=true (see theme.conf)
 #   ./test.sh -k                      # keep the greeter open after the shots
 #   ./test.sh -n                      # no screenshots, just open it
@@ -20,6 +22,7 @@ repo=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 theme="$repo/theme"
 user_conf=""
 avatar=""
+data_dir=""
 delay=2
 shots=1
 keep=0
@@ -28,15 +31,16 @@ steps=()
 out="$repo/screenshots"
 
 usage() {
-    sed -n '2,16p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
+    sed -n '2,18p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
     exit "${1:-0}"
 }
 
-while getopts "t:c:a:d:o:s:knrh" opt; do
+while getopts "t:c:a:D:d:o:s:knrh" opt; do
     case $opt in
     t) theme=$(realpath "$OPTARG") ;;
     c) user_conf=$(realpath "$OPTARG") ;;
     a) avatar=$(realpath "$OPTARG") ;;
+    D) data_dir=$(realpath "$OPTARG") ;;
     d) delay=$OPTARG ;;
     o) out=$OPTARG ;;
     k) keep=1 ;;
@@ -57,19 +61,27 @@ done
 tmp=$(mktemp -d)
 cp -r "$theme" "$tmp/theme"
 conf="$tmp/theme/theme.conf.user"
-# An installed theme links it into user/, which may not exist yet
-[[ -L $conf ]] && mkdir -p "$(dirname "$(readlink -m "$conf")")"
-# -c replaces it; otherwise an installed theme keeps its synced one
-if [[ -n $user_conf ]]; then
-    rm -f "$conf"
-    cp "$user_conf" "$conf"
-elif [[ ! -e $conf ]]; then
-    echo "[General]" >"$conf"
+# The overrides: -c, else the -D dir's, else the theme's own (an installed
+# theme links it into dataDir, maybe not created yet). Always a plain copy,
+# so the test keys below never reach the real synced file
+conf_src=$user_conf
+[[ -z $conf_src && -n $data_dir ]] && conf_src=$data_dir/theme.conf.user
+[[ -z $conf_src ]] && conf_src=$conf
+if [[ -f $conf_src ]]; then
+    content=$(cat "$conf_src")
+else
+    content="[General]"
 fi
+rm -f "$conf"
+printf '%s\n' "$content" | sed -E '/^(testMode|dataDir)=/d' >"$conf"
 ((test_mode)) && echo "testMode=true" >>"$conf"
+# -a wins over -D for the avatar; without either, the theme's dataDir
 if [[ -n $avatar ]]; then
-    mkdir -p "$tmp/theme/user/avatars"
-    cp "$avatar" "$tmp/theme/user/avatars/$USER.png"
+    mkdir -p "$tmp/data/avatars"
+    cp "$avatar" "$tmp/data/avatars/$USER.png"
+    echo "dataDir=$tmp/data" >>"$conf"
+elif [[ -n $data_dir ]]; then
+    echo "dataDir=$data_dir" >>"$conf"
 fi
 
 start=$(date +%s)
