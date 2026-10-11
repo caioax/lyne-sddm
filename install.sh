@@ -4,18 +4,18 @@
 #   ./install.sh --dry-run               # show every step, change nothing
 #   ./install.sh                         # install or update, and select it
 #   ./install.sh --uninstall --dry-run
-#   ./install.sh --uninstall             # remove it and its sddm.conf.d file
+#   ./install.sh --uninstall             # remove it, its synced files and lyne.conf
 #   ./install.sh --user NAME             # owner of the synced files (default: you)
 #
-# theme/ goes to /usr/share/sddm/themes/lyne (root-owned). Inside it, user/
+# theme/ goes to /usr/share/sddm/themes/lyne (root-owned). /var/lib/lyne-sddm
 # belongs to you: lyne-dots writes theme.conf.user, the wallpaper and the
-# avatars there without sudo (theme.conf.user in the theme root is a symlink
+# avatars there without sudo (theme.conf.user in the theme dir is a symlink
 # to it). /etc/sddm.conf.d/lyne.conf selects the theme; removing it brings
-# back whatever the other SDDM config files select.
+# back whatever the other SDDM config files select. Asks for the sudo password.
 #
 # The lyne-sddm-git package installs this script as `lyne-sddm`. Without a
 # theme/ dir next to it, it leaves the theme files to pacman and only sets up
-# user/ and lyne.conf (--uninstall removes just those).
+# /var/lib/lyne-sddm and lyne.conf (--uninstall removes just those).
 #
 # Testing: LYNE_SDDM_PREFIX=/some/dir puts every system path under that dir
 # and runs the steps as you, without sudo.
@@ -30,6 +30,9 @@ themes=$prefix/usr/share/sddm/themes
 dest=$themes/$name
 confdir=$prefix/etc/sddm.conf.d
 conf=$confdir/lyne.conf
+# Synced files (theme.conf's dataDir); before 0.1.0 they lived in $dest/user
+data=$prefix/var/lib/lyne-sddm
+old_data=$dest/user
 dry=0
 uninstall=0
 owner=${SUDO_USER:-$USER}
@@ -74,19 +77,31 @@ root() {
     fi
 }
 
-# Writes stdin to a file as root: root_write PATH MODE [OWNER:GROUP]
-root_write() {
-    local path=$1 mode=$2 own=${3:-root:root} content
+# Runs a command as the owner of the synced files, so root never writes
+# inside a dir a user controls (a planted symlink would redirect it)
+as_owner() {
+    if ((dry)); then
+        printf '   [dry-run] (as %s) %s\n' "$owner" "$*"
+    elif [[ -n $prefix ]] || [[ $owner == "$(id -un)" ]]; then
+        "$@"
+    else
+        sudo -u "$owner" -- "$@"
+    fi
+}
+
+# Writes stdin to a file: write_file root|owner PATH MODE
+write_file() {
+    local who=$1 path=$2 mode=$3 content
     content=$(cat)
     if ((dry)); then
-        printf '   [dry-run] write %s (%s, %s):\n' "$path" "$mode" "$own"
+        printf '   [dry-run] write %s (%s, %s):\n' "$path" "$mode" "$([[ $who == root ]] && echo root || echo "$owner")"
         printf '%s\n' "$content" | sed 's/^/   [dry-run]   | /'
         return
     fi
-    if [[ -n $prefix ]]; then
-        printf '%s\n' "$content" | install -m "$mode" /dev/stdin "$path"
+    if [[ $who == root ]]; then
+        printf '%s\n' "$content" | root install -m "$mode" /dev/stdin "$path"
     else
-        printf '%s\n' "$content" | root install -m "$mode" -o "${own%:*}" -g "${own#*:}" /dev/stdin "$path"
+        printf '%s\n' "$content" | as_owner install -m "$mode" /dev/stdin "$path"
     fi
 }
 
@@ -137,13 +152,13 @@ describe() {
 # UNINSTALL
 # ============================================================================
 if ((uninstall)); then
-    if [[ ! -e $dest && ! -e $conf ]]; then
+    if [[ ! -e $dest && ! -e $conf && ! -e $data ]]; then
         say "lyne-sddm is not installed"
         exit 0
     fi
 
-    if ((packaged)) && [[ ! -e $conf && ! -e $dest/user ]]; then
-        say "Nothing to remove: no $conf nor $dest/user"
+    if ((packaged)) && [[ ! -e $conf && ! -e $data && ! -e $old_data ]]; then
+        say "Nothing to remove: no $conf nor $data"
         exit 0
     fi
 
@@ -153,13 +168,15 @@ if ((uninstall)); then
     if [[ -n $after_theme && ! -d $themes/$after_theme ]]; then
         warn "theme \"$after_theme\" is not installed: SDDM falls back to its default"
     fi
-    [[ -d $dest/user ]] && say "The synced files in $dest/user (copies) go too"
+    [[ -e $data ]] && say "The synced files in $data (copies from lyne-dots) go too"
 
     say "Removing $conf"
     root rm -f "$conf"
+    say "Removing $data"
+    root rm -rf "$data"
+    [[ -e $old_data ]] && root rm -rf "$old_data"
     if ((packaged)); then
-        say "Removing $dest/user (the theme itself stays: pacman -R lyne-sddm-git)"
-        root rm -rf "$dest/user"
+        say "The theme itself stays: pacman -R lyne-sddm-git"
     else
         say "Removing $dest"
         root rm -rf "$dest"
@@ -196,17 +213,26 @@ if [[ $system_fonts != *"$font"* ]]; then
     warn "on Arch: sudo pacman -S ttf-cascadia-code-nerd"
 fi
 
+# Older versions kept the synced files inside the theme. Not copied over:
+# `lyne sddm apply` in lyne-dots writes them again
+migrated=0
+if [[ -e $old_data ]]; then
+    say "Removing the old synced dir $old_data (now $data)"
+    root rm -rf "$old_data"
+    migrated=1
+fi
+
 if ((packaged)); then
     say "Theme files: $dest (from the package)"
 elif [[ -d $dest ]]; then
-    say "Updating $dest (keeping user/)"
-    root find "$dest" -mindepth 1 -maxdepth 1 ! -name user ! -name theme.conf.user -exec rm -rf {} +
+    say "Updating $dest"
+    root find "$dest" -mindepth 1 -maxdepth 1 -exec rm -rf {} +
 else
     say "Installing to $dest"
     root install -d -m 755 "$dest"
 fi
 
-# Theme files, without any local theme.conf.user or user/ from testing
+# Theme files, without any theme.conf.user or user/ left from testing
 if ((packaged)); then
     :
 elif ((dry)); then
@@ -218,27 +244,33 @@ else
     root chmod -R u=rwX,go=rX "$dest"
 fi
 
-say "Synced files: $dest/user (owned by $owner)"
+say "Synced files: $data (owned by $owner)"
 if [[ -n $prefix ]]; then
-    root install -d -m 755 "$dest/user" "$dest/user/avatars"
+    root install -d -m 755 "$data"
 else
-    root install -d -m 755 -o "$owner" -g "$group" "$dest/user" "$dest/user/avatars"
+    # One owner per machine: running this as another user hands it over
+    if [[ -d $data && $(stat -c %U "$data") != "$owner" ]]; then
+        say "It belonged to $(stat -c %U "$data"): $owner controls the login screen now"
+    fi
+    root install -d -m 755 -o "$owner" -g "$group" "$data"
+    root chown -R "$owner:$group" "$data"
 fi
+as_owner install -d -m 755 "$data/avatars"
 # lyne-dots writes this same text when its sync is turned off (docs/sync.md):
 # keep them identical
-if [[ ! -e $dest/user/theme.conf.user ]]; then
-    root_write "$dest/user/theme.conf.user" 644 "$owner:$group" <<'EOF'
+if [[ ! -e $data/theme.conf.user ]]; then
+    write_file owner "$data/theme.conf.user" 644 <<'EOF'
 [General]
 # Overrides of theme.conf, written by lyne-dots (see docs/sync.md).
 # Empty: the theme's defaults (Tokyo Night).
 EOF
 fi
 # The package ships this link already
-((packaged)) || root ln -sfn user/theme.conf.user "$dest/theme.conf.user"
+((packaged)) || root ln -sfn "$data/theme.conf.user" "$dest/theme.conf.user"
 
 say "Selecting the theme in $conf"
 root install -d -m 755 "$confdir"
-root_write "$conf" 644 <<EOF
+write_file root "$conf" 644 <<EOF
 # Written by lyne-sddm; "$cmd --uninstall" removes it
 [Theme]
 Current=$name
@@ -251,6 +283,9 @@ if [[ ${result%%|*} != "$name" ]]; then
 fi
 
 say "Done. SDDM was not restarted: the theme shows on the next login screen"
+if ((migrated)); then
+    say "Run 'lyne sddm apply' in lyne-dots to sync your look again"
+fi
 if ((packaged)); then
     say "Try it now: sddm-greeter-qt6 --test-mode --theme $dest"
 else

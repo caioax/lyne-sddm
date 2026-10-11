@@ -1,18 +1,29 @@
-# The theme files belong to the package; the synced user/ dir and
-# /etc/sddm.conf.d/lyne.conf come from `lyne-sddm`, run by the user
+# The theme files belong to the package; /var/lib/lyne-sddm (synced files)
+# and /etc/sddm.conf.d/lyne.conf come from `lyne-sddm`, run by the user
 
-_theme=/usr/share/sddm/themes/lyne
+_data=/var/lib/lyne-sddm
+_old_data=/usr/share/sddm/themes/lyne/user
 _conf=/etc/sddm.conf.d/lyne.conf
 
 post_install() {
     echo ":: lyne-sddm: as your user, run 'lyne-sddm --dry-run' and then"
-    echo "   'lyne-sddm' to create the synced dir ($_theme/user) and"
-    echo "   select the theme in $_conf. SDDM is not restarted."
+    echo "   'lyne-sddm' (it asks for your sudo password) to create the synced"
+    echo "   dir $_data and select the theme in $_conf."
+    echo "   SDDM is not restarted."
+}
+
+post_upgrade() {
+    # Before 0.1.0 the synced files lived inside the theme
+    if [[ -d $_old_data ]]; then
+        echo ":: lyne-sddm: the synced files moved to $_data; run 'lyne-sddm'"
+        echo "   as your user (it asks for your sudo password), then"
+        echo "   'lyne sddm apply' in lyne-dots. Until then the theme shows its defaults."
+    fi
 }
 
 pre_remove() {
     # Copies written by lyne-dots, unknown to pacman
-    rm -rf "$_theme/user"
+    rm -rf "$_data" "$_old_data"
     # Only the file lyne-sddm wrote, never a hand-written one
     if grep -q '^# Written by lyne-sddm' "$_conf" 2>/dev/null; then
         rm -f "$_conf"
