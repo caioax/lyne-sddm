@@ -71,14 +71,21 @@ Cloning a name nobody owns gives an empty repo; the first push creates
 the package, owned by you:
 
 ```sh
-git clone ssh://aur@aur.archlinux.org/lyne-sddm-git.git ~/Dev/aur/lyne-sddm-git
+git clone https://aur.archlinux.org/lyne-sddm-git.git ~/Dev/aur/lyne-sddm-git
 cd ~/Dev/aur/lyne-sddm-git
+git remote set-url --push origin ssh://aur@aur.archlinux.org/lyne-sddm-git.git
+git symbolic-ref HEAD refs/heads/master   # the AUR only takes master
 cp ~/Dev/lyne-sddm/{PKGBUILD,lyne-sddm.install} .
 makepkg --printsrcinfo >.SRCINFO
 git add PKGBUILD lyne-sddm.install .SRCINFO
 git commit -m "Initial import: lyne-sddm-git 0.1.0"
-git push
+git push -u origin master   # first time; later just git push
 ```
+
+The clone works without an account (read-only over https); pushes go over
+SSH. `.SRCINFO` copies `pkgver` from the PKGBUILD as written, so set it
+first to the one the chroot build printed (makepkg rewrites it there), and
+keep the repo's PKGBUILD in step.
 
 The page shows at <https://aur.archlinux.org/packages/lyne-sddm-git>, and
 `yay -S lyne-sddm-git` works.
