@@ -14,9 +14,12 @@ Item {
     property bool ready: false
     readonly property bool shown: ready && !Greeter.succeeded
 
-    Component.onCompleted: {
-        Qt.callLater(() => ready = true);
-        // The keyboard goes to the active window: make it the primary one
+    Component.onCompleted: Qt.callLater(() => ready = true)
+
+    // The keyboard goes to the active window: make it the primary one, even
+    // with the pointer on another screen (X11 without a window manager).
+    // The view only gets its window after this item completes
+    Window.onWindowChanged: {
         if (primaryScreen)
             Window.window?.requestActivate();
     }
