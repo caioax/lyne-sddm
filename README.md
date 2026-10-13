@@ -4,8 +4,6 @@ An SDDM theme for [lyne-dots](https://github.com/caioax/lyne-dots): the login
 screen as a sibling of the Quickshell lock screen, with the same clock, fonts,
 password pill and animations.
 
-> Work in progress.
-
 ## Features
 
 - Clock and date over the blurred wallpaper
