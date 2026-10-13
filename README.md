@@ -21,6 +21,28 @@ password pill and animations.
 
 ## Install
 
+### Script
+
+```sh
+git clone https://github.com/caioax/lyne-sddm && cd lyne-sddm
+./install.sh --dry-run    # see every step first
+./install.sh              # install or update (asks for sudo)
+```
+
+It copies `theme/` to `/usr/share/sddm/themes/lyne`, creates
+`/var/lib/lyne-sddm` owned by you (see below) and selects the theme in
+`/etc/sddm.conf.d/lyne.conf`. A `Current=` in a config file read after that
+one (or in `/etc/sddm.conf`) still wins: the installer warns about it. SDDM is
+never restarted; the theme shows on the next login screen.
+
+The installed theme is a copy: after `git pull` or any change to `theme/`,
+run `./install.sh` again (no commit needed; `./test.sh` previews it first).
+
+```sh
+./install.sh --uninstall --dry-run
+./install.sh --uninstall  # SDDM goes back to the theme the other files select
+```
+
 ### Package (Arch)
 
 `lyne-sddm-git` is not on the AUR yet; until it is, build it from a clone:
@@ -35,40 +57,31 @@ lyne-sddm                 # create your synced dir and select the theme (asks fo
 pacman owns the theme files; `lyne-sddm` (this repo's `install.sh`) only adds
 what a package can't know: `/var/lib/lyne-sddm` owned by you and
 `/etc/sddm.conf.d/lyne.conf`. `lyne-sddm --uninstall` undoes that, and
-removing the package cleans both up too.
+removing the package cleans both up too. It builds from GitHub, so updates
+mean `makepkg -si` again, not just `git pull`.
 
-Coming from a version that kept the synced files in the theme's `user/`
-dir: run `lyne-sddm` again (it removes that dir), then `lyne sddm apply` in
-lyne-dots. Until then the theme shows its defaults.
+Use one or the other: `install.sh` refuses to touch a theme pacman owns. To
+switch to the script, `sudo pacman -R lyne-sddm-git` first (it removes
+`/var/lib/lyne-sddm` too), then `./install.sh` and `lyne sddm apply`.
 
-### Script
-
-```sh
-./install.sh --dry-run    # see every step first
-./install.sh              # install or update (asks for sudo)
-```
-
-It copies `theme/` to `/usr/share/sddm/themes/lyne` and selects it in
-`/etc/sddm.conf.d/lyne.conf`. A `Current=` in a config file read after that
-one (or in `/etc/sddm.conf`) still wins: the installer warns about it. SDDM is
-never restarted; the theme shows on the next login screen.
-
-```sh
-./install.sh --uninstall --dry-run
-./install.sh --uninstall  # SDDM goes back to the theme the other files select
-```
+### Syncing with lyne-dots
 
 To follow the lyne-dots palette, wallpaper and avatar, lyne-dots writes into
 `/var/lib/lyne-sddm`, owned by you: `lyne sddm apply` (run by the shell on
 every theme, wallpaper or avatar change) and `lyne sddm status`, or
-Settings › Theme › Login screen. See [docs/sync.md](docs/sync.md).
+Settings › Theme › Login screen. These need no reinstall. See
+[docs/sync.md](docs/sync.md).
+
+Coming from a version that kept the synced files in the theme's `user/`
+dir: run the installer again (it removes that dir), then `lyne sddm apply` in
+lyne-dots. Until then the theme shows its defaults.
 
 ## Several users
 
 A machine has one login screen, so one look: the owner of
-`/var/lib/lyne-sddm` (whoever ran `lyne-sddm` last) sets it for everyone,
-through their lyne-dots. Only that user's avatar is synced; the others show
-their account icon (AccountsService) or a silhouette. Running `lyne-sddm` as
+`/var/lib/lyne-sddm` (whoever ran `install.sh` or `lyne-sddm` last) sets it
+for everyone, through their lyne-dots. Only that user's avatar is synced; the others show
+their account icon (AccountsService) or a silhouette. Running the installer as
 another user hands the dir, and the look, over to them.
 
 ## Testing
