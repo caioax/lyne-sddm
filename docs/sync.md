@@ -101,8 +101,38 @@ and removes `wallpaper.*` and `avatars/<user>.png`:
 # Empty: the theme's defaults (Tokyo Night).
 ```
 
-lyne-dots writes this text itself: when changing it in `install.sh`, change
-it in lyne-dots too.
+lyne-dots writes this text itself: when changing it in `install.sh`
+(`default_conf`), change it in lyne-dots too.
+
+It only does that to a file carrying its own header (`# Written by
+lyne-dots`). With the sync off, the user may set the look by hand:
+
+### Manual choices
+
+`lyne-sddm --preset/--layout/--wallpaper/--opacity` writes the file with
+its own header, `# Written by lyne-sddm` at the start of the second line:
+
+```ini
+[General]
+# Written by lyne-sddm: manual choices (lyne-sddm --help). lyne-dots leaves
+# it alone while its sync is off; lyne-sddm --reset goes back to the defaults.
+preset=nord
+background=#2e3440
+# ...the 13 palette keys of the preset...
+backgroundOpacity=0.8
+layout=cards
+wallpaper=/var/lib/lyne-sddm/wallpaper.jpg
+```
+
+- lyne-dots, with its sync off, leaves such a file, `wallpaper.*` and
+  `avatars/` untouched; `lyne sddm status` reports it as manual.
+- lyne-sddm refuses to write over a file with the lyne-dots header, and
+  over a hand-edited one (neither header nor the empty template) unless
+  `--reset`.
+- `preset=` is a record for lyne-sddm (it keeps the choice across runs);
+  the theme ignores it. The wallpaper copy follows the same rules as
+  lyne-dots' (below).
+- `--reset` writes the empty template and removes `wallpaper.*`.
 
 ## Layouts
 

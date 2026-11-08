@@ -135,8 +135,26 @@ The layout is the `layout` key (`center`, `cards`, `wallpaper`, `split`,
 layout=cards
 ```
 
-`theme/presets/` holds the lyne-dots palettes (nord, gruvbox, rose-pine...)
-in the same format: `./test.sh -c theme/presets/nord.conf` previews one.
+### Without lyne-dots
+
+`lyne-sddm` (or `./install.sh` from a clone) sets the look for you, no
+sudo needed. Options combine and keep the earlier choices:
+
+```sh
+lyne-sddm --list-presets                # nord, gruvbox, rose-pine... (the lyne-dots palettes)
+lyne-sddm --list-layouts
+lyne-sddm --preset nord --layout cards
+lyne-sddm --wallpaper ~/Pictures/pic.jpg  # copied in: the greeter can't read your home
+lyne-sddm --opacity 0.8                 # cards and pills
+lyne-sddm --wallpaper default            # back to the theme's wallpaper
+lyne-sddm --reset                       # back to every default
+```
+
+They write `/var/lib/lyne-sddm/theme.conf.user`, so the install must have
+run once. While the lyne-dots sync is on, lyne-dots owns that file and these
+options refuse to touch it; with the sync off, lyne-dots leaves your choices
+alone. `./test.sh -c theme/presets/nord.conf` previews a preset without
+changing anything.
 
 Maintainers: [docs/aur.md](docs/aur.md) covers checking and publishing the
 package.

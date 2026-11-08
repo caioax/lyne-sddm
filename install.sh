@@ -7,6 +7,19 @@
 #   ./install.sh --uninstall             # remove it, its synced files and lyne.conf
 #   ./install.sh --user NAME             # owner of the synced files (default: you)
 #
+# The look, without lyne-dots (no sudo; written to /var/lib/lyne-sddm, so run
+# the install first). Options combine and keep earlier choices:
+#
+#   ./install.sh --list-presets          # palettes for --preset
+#   ./install.sh --list-layouts          # layouts for --layout
+#   ./install.sh --preset nord --layout cards
+#   ./install.sh --wallpaper ~/pic.jpg   # copied in; "default" = the theme's
+#   ./install.sh --opacity 0.8           # cards and pills, 0..1
+#   ./install.sh --reset                 # back to the theme's defaults
+#
+# While the lyne-dots sync is on, lyne-dots owns the look: these refuse to
+# change it (turn the sync off in its Settings › Theme › Login screen).
+#
 # theme/ goes to /usr/share/sddm/themes/lyne (root-owned). /var/lib/lyne-sddm
 # belongs to you: lyne-dots writes theme.conf.user, the wallpaper and the
 # avatars there without sudo (theme.conf.user in the theme dir is a symlink
@@ -35,29 +48,12 @@ data=$prefix/var/lib/lyne-sddm
 old_data=$dest/user
 dry=0
 uninstall=0
+# Look options (--preset, --layout, --wallpaper, --opacity, --reset, --list)
+declare -A look=()
 owner=${SUDO_USER:-$USER}
 # Run from the package: the theme files belong to pacman
 packaged=0
 [[ -f $src/metadata.desktop ]] || packaged=1
-
-usage() {
-    sed -n '2,19p' "${BASH_SOURCE[0]}" | sed 's/^# \{0,1\}//'
-    exit "${1:-0}"
-}
-
-while (($#)); do
-    case $1 in
-    -n | --dry-run) dry=1 ;;
-    -u | --uninstall) uninstall=1 ;;
-    --user)
-        owner=${2:?--user needs a name}
-        shift
-        ;;
-    -h | --help) usage ;;
-    *) usage 1 ;;
-    esac
-    shift
-done
 
 say() { printf '\033[1;34m::\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33mwarning:\033[0m %s\n' "$*" >&2; }
@@ -67,6 +63,34 @@ die() {
     explained=1
     exit 1
 }
+
+# The comment block at the top of this file
+usage() {
+    awk 'NR == 1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "${BASH_SOURCE[0]}"
+    exit "${1:-0}"
+}
+
+while (($#)); do
+    case $1 in
+    -n | --dry-run) dry=1 ;;
+    -u | --uninstall) uninstall=1 ;;
+    --preset | --layout | --wallpaper | --opacity)
+        [[ $# -ge 2 && -n $2 ]] || die "$1 needs a value"
+        look[${1#--}]=$2
+        shift
+        ;;
+    --reset) look[reset]=1 ;;
+    --list-presets) look[list]=presets ;;
+    --list-layouts) look[list]=layouts ;;
+    --user)
+        owner=${2:?--user needs a name}
+        shift
+        ;;
+    -h | --help) usage ;;
+    *) usage 1 ;;
+    esac
+    shift
+done
 
 # A failed step (a cancelled or refused sudo prompt included) stops the
 # script through set -e: say so instead of leaving only that command's output
@@ -157,6 +181,170 @@ describe() {
         echo "\"$theme\" (from $from)"
     fi
 }
+
+# The file the install creates and lyne-dots puts back when its sync goes
+# off: lyne-dots keeps a copy of this text (SDDM_DEFAULT_CONF), keep both equal
+default_conf() {
+    cat <<'EOF'
+[General]
+# Overrides of theme.conf, written by lyne-dots (see docs/sync.md).
+# Empty: the theme's defaults (Tokyo Night).
+EOF
+}
+
+# ============================================================================
+# LOOK: --preset, --layout, --wallpaper, --opacity, --reset, --list-* (no sudo)
+# ============================================================================
+if ((${#look[@]})); then
+    ((uninstall)) && die "--uninstall doesn't mix with the look options"
+    # The installed theme (what the greeter shows), else this repo's
+    theme_dir=$dest
+    [[ -f $theme_dir/metadata.desktop ]] || theme_dir=$src
+    [[ -f $theme_dir/metadata.desktop ]] || die "theme not found in $dest: install it first"
+
+    if [[ -n ${look[list]:-} ]]; then
+        ((${#look[@]} == 1)) || die "--list-${look[list]} goes alone"
+        shopt -s nullglob
+        if [[ ${look[list]} == presets ]]; then
+            for f in "$theme_dir"/presets/*.conf; do basename "$f" .conf; done
+        else
+            for f in "$theme_dir"/layouts/*.qml; do
+                f=$(basename "$f" .qml)
+                echo "${f,,}"
+            done
+        fi
+        exit 0
+    fi
+    if [[ -n ${look[reset]:-} ]] && ((${#look[@]} > 1)); then
+        die "--reset goes alone"
+    fi
+
+    # Root writing in a dir a user controls could be redirected by a link
+    ((EUID == 0)) && [[ -z $prefix ]] && die "run this as your user, without sudo"
+    file=$data/theme.conf.user
+    [[ -d $data ]] || die "$data doesn't exist: run $cmd (the install) first"
+    [[ -O $data ]] || die "$data belongs to $(stat -c %U "$data"): run this as that user"
+    if grep -q '^# Written by lyne-dots' "$file" 2>/dev/null; then
+        die "lyne-dots syncs the login screen: change it in its Settings › Theme › Login screen, or turn the sync off there first"
+    fi
+    manual=0
+    grep -q '^# Written by lyne-sddm' "$file" 2>/dev/null && manual=1
+    # Neither ours nor the empty template: someone edited it by hand
+    if ((!manual)) && [[ -f $file && $(<"$file") != "$(default_conf)" && -z ${look[reset]:-} ]]; then
+        die "$file has changes of its own: move it away, or start over with --reset"
+    fi
+
+    # Moves the content of stdin into place in one step
+    put() {
+        local target=$1 tmp
+        if ((dry)); then
+            printf '   [dry-run] write %s:\n' "$target"
+            sed 's/^/   [dry-run]   | /'
+            return
+        fi
+        tmp=$(mktemp "$data/.lyne-sddm.XXXXXX")
+        cat >"$tmp"
+        chmod 644 "$tmp"
+        mv -f "$tmp" "$target"
+    }
+    # Removes the wallpaper copies, all but $1
+    drop_wallpapers() {
+        local f
+        for f in "$data"/wallpaper.*; do
+            [[ -e $f && $f != "${1:-}" ]] || continue
+            if ((dry)); then printf '   [dry-run] rm %s\n' "$f"; else rm -f "$f"; fi
+        done
+    }
+
+    if [[ -n ${look[reset]:-} ]]; then
+        default_conf | put "$file"
+        drop_wallpapers
+        say "Back to the theme's defaults"
+        exit 0
+    fi
+
+    # Earlier manual choices stay unless replaced
+    declare -A keys=()
+    if ((manual)); then
+        while IFS= read -r line; do
+            [[ $line =~ ^([A-Za-z0-9]+)=(.*)$ ]] && keys[${BASH_REMATCH[1]}]=${BASH_REMATCH[2]}
+        done <"$file"
+    fi
+    palette=(background surface0 surface1 surface2 surface3 text textReverse subtext
+        accent success warning error muted)
+
+    if [[ -n ${look[preset]:-} ]]; then
+        id=${look[preset],,}
+        preset=$theme_dir/presets/$id.conf
+        [[ $id =~ ^[a-z0-9-]+$ && -f $preset ]] ||
+            die "no preset \"${look[preset]}\" (see --list-presets)"
+        for key in "${palette[@]}"; do
+            value=$(sed -n "s/^$key=//p" "$preset" | tail -1)
+            [[ -n $value ]] || die "$preset has no $key"
+            keys[$key]=$value
+        done
+        keys[preset]=$id
+        say "Palette: $id"
+    fi
+
+    if [[ -n ${look[layout]:-} ]]; then
+        id=${look[layout],,}
+        [[ $id =~ ^[a-z]+$ && -f $theme_dir/layouts/${id^}.qml ]] ||
+            die "no layout \"${look[layout]}\" (see --list-layouts)"
+        keys[layout]=$id
+        say "Layout: $id"
+    fi
+
+    if [[ -n ${look[opacity]:-} ]]; then
+        value=${look[opacity]}
+        [[ $value =~ ^(0(\.[0-9]+)?|1(\.0+)?|\.[0-9]+)$ ]] ||
+            die "--opacity takes a number from 0 to 1, not \"$value\""
+        keys[backgroundOpacity]=$value
+        say "Opacity: $value"
+    fi
+
+    if [[ -n ${look[wallpaper]:-} ]]; then
+        if [[ ${look[wallpaper]} == default ]]; then
+            unset 'keys[wallpaper]'
+            drop_wallpapers
+            say "Wallpaper: the theme's"
+        else
+            picture=${look[wallpaper]}
+            [[ -f $picture && -r $picture ]] || die "can't read $picture"
+            ext=${picture##*.}
+            ext=${ext,,}
+            [[ $ext =~ ^(jpg|jpeg|png|webp)$ ]] || die "the wallpaper must be a jpg, png or webp file"
+            if [[ $ext == webp && ! -e /usr/lib/qt6/plugins/imageformats/libqwebp.so ]]; then
+                warn "webp needs qt6-imageformats, or the greeter shows no wallpaper"
+            fi
+            # The greeter (user sddm) can't read your home: keep a copy here
+            copy=$data/wallpaper.$ext
+            if ((dry)); then
+                printf '   [dry-run] copy %s to %s\n' "$picture" "$copy"
+            else
+                put "$copy" <"$picture"
+            fi
+            drop_wallpapers "$copy"
+            keys[wallpaper]=$copy
+            say "Wallpaper: a copy of $picture"
+        fi
+    fi
+
+    {
+        echo "[General]"
+        echo "# Written by lyne-sddm: manual choices ($cmd --help). lyne-dots leaves"
+        echo "# it alone while its sync is off; $cmd --reset goes back to the defaults."
+        for key in preset "${palette[@]}" backgroundOpacity layout wallpaper; do
+            if [[ -n ${keys[$key]:-} ]]; then echo "$key=${keys[$key]}"; fi
+        done
+    } | put "$file"
+    if ((dry)); then
+        say "Dry run: nothing was changed"
+    else
+        say "Done: it shows on the next login screen. Preview: sddm-greeter-qt6 --test-mode --theme $theme_dir"
+    fi
+    exit 0
+fi
 
 ((dry)) && say "Dry run: nothing will be changed"
 
@@ -268,14 +456,9 @@ else
     root chown -R "$owner:$group" "$data"
 fi
 as_owner install -d -m 755 "$data/avatars"
-# lyne-dots writes this same text when its sync is turned off (docs/sync.md):
-# keep them identical
+# The empty template (default_conf), unless there is one already
 if [[ ! -e $data/theme.conf.user ]]; then
-    write_file owner "$data/theme.conf.user" 644 <<'EOF'
-[General]
-# Overrides of theme.conf, written by lyne-dots (see docs/sync.md).
-# Empty: the theme's defaults (Tokyo Night).
-EOF
+    default_conf | write_file owner "$data/theme.conf.user" 644
 fi
 # The package ships this link already
 ((packaged)) || root ln -sfn "$data/theme.conf.user" "$dest/theme.conf.user"
