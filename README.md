@@ -156,9 +156,6 @@ options refuse to touch it; with the sync off, lyne-dots leaves your choices
 alone. `./test.sh -c theme/presets/nord.conf` previews a preset without
 changing anything.
 
-Maintainers: [docs/aur.md](docs/aur.md) covers checking and publishing the
-package.
-
 ## License
 
 [GPL-3.0](LICENSE), same as lyne-dots.

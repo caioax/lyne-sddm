@@ -35,7 +35,8 @@ package() {
     find "$dest" -type d -exec chmod 755 {} +
     find "$dest" -type f -exec chmod 644 {} +
     # SDDM only reads theme.conf.user next to theme.conf; the real file lives
-    # in the user-owned dir that `lyne-sddm` creates (dangling until then)
+    # in the user-owned dir that `lyne-sddm` creates (dangling until then, so
+    # namcap's "symlink points to non-existing" error is expected)
     ln -s /var/lib/lyne-sddm/theme.conf.user "$dest/theme.conf.user"
 
     install -Dm755 install.sh "$pkgdir/usr/bin/lyne-sddm"
