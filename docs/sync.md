@@ -68,6 +68,7 @@ surface0=#24283b
 # ...every key of the palette...
 backgroundOpacity=0.9
 wallpaper=/var/lib/lyne-sddm/wallpaper.jpeg
+layout=center
 ```
 
 - **Palette**: the `palette` object of `~/.cache/lyne/nvim.json`, one
@@ -81,6 +82,9 @@ wallpaper=/var/lib/lyne-sddm/wallpaper.jpeg
   preference (Settings › Layout); a theme only sets its starting value.
 - **wallpaper**: absolute path of the copy (inside the synced dir in use).
   Without it the theme's default wallpaper shows.
+- **layout**: the `sddm.layout` value of the lyne-dots state (its own
+  control in Settings › Theme › Login screen, apart from the lock screen's
+  `lock.style`). See [Layouts](#layouts).
 - **dataDir** is never written: it belongs to `theme.conf`.
 - Any other token of `theme.conf` can be overridden the same way. Quote
   values that contain a comma (`dateFormat="dddd, d MMMM"`), or SDDM reads
@@ -99,6 +103,19 @@ and removes `wallpaper.*` and `avatars/<user>.png`:
 
 lyne-dots writes this text itself: when changing it in `install.sh`, change
 it in lyne-dots too.
+
+## Layouts
+
+The layouts are the files of `/usr/share/sddm/themes/lyne/layouts/`:
+
+- `<Name>.qml` is a layout; its id, the value of `layout=`, is the file name
+  in lowercase (`Cards.qml` is `cards`). Names are a single word.
+- `<Name>.png`, when present, is a thumbnail for a settings page.
+
+lyne-dots lists that dir to fill its control, so a new layout shows up
+there without changing lyne-dots. An id the theme doesn't have (a layout
+removed in a newer version, a typo) shows `center`; lyne-dots shows such a
+saved value as `center` too.
 
 ## Files
 

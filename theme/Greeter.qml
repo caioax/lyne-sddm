@@ -25,10 +25,38 @@ Item {
     property var _users: []
     property var _sessions: []
 
+    readonly property string hostName: sddm.hostName ?? ""
+
+    // Session list (SessionPicker draws it; Main's keys drive it, whatever
+    // the layout): open or not, and the row under the keyboard
+    property bool sessionsOpen: false
+    property int sessionHighlighted: sessionIndex
+
+    function toggleSessions(): void {
+        sessionHighlighted = sessionIndex;
+        sessionsOpen = !sessionsOpen;
+    }
+
+    function moveSession(step: int): void {
+        const count = sessions.length;
+        if (count > 0)
+            sessionHighlighted = (sessionHighlighted + step + count) % count;
+    }
+
+    function pickSession(): void {
+        sessionIndex = sessionHighlighted;
+        sessionsOpen = false;
+    }
+
     function cycleUser(step: int): void {
-        if (users.length < 2)
+        if (users.length > 1)
+            selectUser((userIndex + step + users.length) % users.length);
+    }
+
+    function selectUser(index: int): void {
+        if (index === userIndex || index < 0 || index >= users.length)
             return;
-        userIndex = (userIndex + step + users.length) % users.length;
+        userIndex = index;
         buffer = "";
         failed = false;
     }

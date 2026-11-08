@@ -28,11 +28,28 @@ QtObject {
     readonly property color cardColor: Qt.alpha(surface0Color, backgroundOpacity)
     readonly property color cardHoverColor: Qt.alpha(surface1Color, backgroundOpacity)
     readonly property color cardBorderColor: Qt.alpha(surface2Color, 0.6)
+    // The background color at the same opacity (the wallpaper layout's bar)
+    readonly property color barColor: Qt.alpha(backgroundColor, backgroundOpacity)
 
     // ========================================================================
     // SYNCED DATA
     // ========================================================================
     readonly property string dataDir: _string("dataDir")
+
+    // ========================================================================
+    // LAYOUT
+    // ========================================================================
+    // A layout id is its file name in layouts/ in lowercase: one word, so
+    // capitalizing it gives the file back. Anything else falls back to center
+    readonly property string layout: {
+        const id = _string("layout").trim().toLowerCase();
+        return /^[a-z]+$/.test(id) ? id : "center";
+    }
+    readonly property url layoutSource: layoutUrl(layout)
+
+    function layoutUrl(id: string): url {
+        return Qt.resolvedUrl("layouts/" + id.charAt(0).toUpperCase() + id.slice(1) + ".qml");
+    }
 
     // ========================================================================
     // WALLPAPER
@@ -41,6 +58,7 @@ QtObject {
     readonly property real blur: _real("blur")
     readonly property int blurMax: _int("blurMax")
     readonly property real dim: _real("dim")
+    readonly property real dimSharp: _real("dimSharp")
 
     // ========================================================================
     // GEOMETRY
@@ -81,17 +99,31 @@ QtObject {
     readonly property bool testMode: _string("testMode") === "true"
 
     // ========================================================================
-    // DERIVED SIZES (lyne-dots lock screen, "center" template)
+    // DERIVED SIZES (lyne-dots lock screen; "center" unless noted)
     // ========================================================================
     readonly property real clockSize: fontSizeIconLarge * 4
-    readonly property real dateSize: Math.max(fontSizeLarge, Math.round(clockSize / 5))
     readonly property real avatarSize: fontSizeIconLarge * 3
     readonly property real fieldWidth: fontSizeNormal * 22
     readonly property real fieldHeight: fontSizeNormal * 3.4
     readonly property real dotSize: fontSizeSmall * 0.8
     readonly property real pillHeight: fontSizeNormal * 2.4
     readonly property real powerBoxSize: fontSizeIcon * 2.6
+    readonly property real powerRowBoxSize: fontSizeIcon * 1.8
     readonly property real edgeMargin: spacing * 4
+
+    // "cards" template: three glass cards side by side
+    readonly property real cardsClockSize: fontSizeIconLarge * 3.5
+    readonly property real cardsAvatarSize: fontSizeIconLarge * 2.6
+    readonly property real cardsFieldWidth: fontSizeNormal * 20
+    readonly property real cardsSideWidth: fontSizeNormal * 16
+    readonly property real cardsRadius: radiusLarge * 1.5
+    readonly property real cardsPadding: padding * 4
+    readonly property real listAvatarSize: fontSizeIcon * 1.4
+
+    // "wallpaper" template: clock in a corner, password bar from below
+    readonly property real wallpaperClockSize: fontSizeIconLarge * 4.5
+    readonly property real wallpaperMargin: spacing * 6
+    readonly property real barAvatarSize: fieldHeight
 
     // A theme file (relative to the theme dir) or an absolute path as a url
     function path(value: string): url {

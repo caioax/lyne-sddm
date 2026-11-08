@@ -3,11 +3,13 @@ import QtQuick.Effects
 import ".."
 
 // The wallpaper, sharp at first; blur and the background color fade in when
-// `revealed` and clear again on the way out (login accepted)
+// `revealed` and clear again on the way out (login accepted). `blurred`
+// false keeps it sharp, only darkened a little (the wallpaper layout)
 Item {
     id: root
 
     property bool revealed: false
+    property bool blurred: true
 
     readonly property real amount: revealed ? 1 : 0
 
@@ -34,7 +36,7 @@ Item {
         autoPaddingEnabled: false
         blurEnabled: true
         blurMax: Tokens.blurMax
-        blur: Tokens.blur * root.amount
+        blur: root.blurred ? Tokens.blur * root.amount : 0
 
         Behavior on blur {
             NumberAnimation {
@@ -47,7 +49,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         color: Tokens.backgroundColor
-        opacity: Tokens.dim * root.amount
+        opacity: (root.blurred ? Tokens.dim : Tokens.dimSharp) * root.amount
 
         Behavior on opacity {
             NumberAnimation {

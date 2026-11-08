@@ -4,61 +4,52 @@ import QtQuick.Layouts
 import ".."
 
 // Bottom left: the session pill, opening the list of sessions above it, and
-// the keyboard layout pill (only with more than one layout), which cycles
+// the keyboard layout pill (only with more than one layout), which cycles.
+// The list's state lives in Greeter, so Main's keys drive it in any layout
 RowLayout {
     id: root
 
-    property bool open: false
-    // Row under the keyboard while the list is open
-    property int highlighted: Greeter.sessionIndex
-
-    function toggle(): void {
-        highlighted = Greeter.sessionIndex;
-        open = !open;
-    }
-
-    function move(step: int): void {
-        const count = Greeter.sessions.length;
-        if (count > 0)
-            highlighted = (highlighted + step + count) % count;
-    }
-
-    function pick(): void {
-        Greeter.sessionIndex = highlighted;
-        open = false;
-    }
+    // The list opens below the pill instead of above (near a top edge)
+    property bool opensDown: false
+    // Room for both pills; the session name elides past it
+    property real maxWidth: Number.POSITIVE_INFINITY
 
     spacing: Tokens.spacing
 
     Pill {
         id: sessionPill
 
+        // The layout pill keeps its size; this one elides
+        maxWidth: root.maxWidth - (layoutPill.visible ? layoutPill.implicitWidth + root.spacing : 0)
+
         icon: "\u{f0379}"
-        text: (Greeter.session?.name ?? "") + "  " + (root.open ? "\u{f0143}" : "\u{f0140}")
+        text: (Greeter.session?.name ?? "") + "  " + (Greeter.sessionsOpen ? "\u{f0143}" : "\u{f0140}")
         accent: Tokens.accentColor
-        active: root.open
+        active: Greeter.sessionsOpen
         onClicked: {
-            root.toggle();
+            Greeter.toggleSessions();
             Greeter.focusRequested();
         }
 
-        // Sessions, growing up from the pill
+        // Sessions, growing up (or down) from the pill
         Rectangle {
             id: list
 
             anchors.left: parent.left
-            anchors.bottom: parent.top
+            anchors.bottom: root.opensDown ? undefined : parent.top
             anchors.bottomMargin: Tokens.spacing
+            anchors.top: root.opensDown ? parent.bottom : undefined
+            anchors.topMargin: Tokens.spacing
             width: Math.max(parent.width, column.implicitWidth + Tokens.padding * 2)
             height: column.implicitHeight + Tokens.padding * 2
             radius: Tokens.radiusLarge
             color: Tokens.cardColor
             border.width: 1
             border.color: Tokens.cardBorderColor
-            transformOrigin: Item.BottomLeft
+            transformOrigin: root.opensDown ? Item.TopLeft : Item.BottomLeft
             visible: opacity > 0
-            opacity: root.open ? 1 : 0
-            scale: root.open ? 1 : Tokens.animPopupFromScale
+            opacity: Greeter.sessionsOpen ? 1 : 0
+            scale: Greeter.sessionsOpen ? 1 : Tokens.animPopupFromScale
 
             Behavior on opacity {
                 NumberAnimation {
@@ -95,7 +86,7 @@ RowLayout {
                         implicitWidth: entryRow.implicitWidth + Tokens.padding * 4
                         implicitHeight: Tokens.pillHeight
                         radius: Tokens.radius
-                        color: entryMouse.containsMouse || index === root.highlighted ? Tokens.cardHoverColor : Qt.alpha(Tokens.cardHoverColor, 0)
+                        color: entryMouse.containsMouse || index === Greeter.sessionHighlighted ? Tokens.cardHoverColor : Qt.alpha(Tokens.cardHoverColor, 0)
 
                         Behavior on color {
                             ColorAnimation {
@@ -135,10 +126,10 @@ RowLayout {
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onEntered: root.highlighted = entry.index
+                            onEntered: Greeter.sessionHighlighted = entry.index
                             onClicked: {
-                                root.highlighted = entry.index;
-                                root.pick();
+                                Greeter.sessionHighlighted = entry.index;
+                                Greeter.pickSession();
                                 Greeter.focusRequested();
                             }
                         }
@@ -149,6 +140,8 @@ RowLayout {
     }
 
     Pill {
+        id: layoutPill
+
         readonly property var layouts: keyboard.layouts ?? []
         readonly property int current: keyboard.currentLayout
 

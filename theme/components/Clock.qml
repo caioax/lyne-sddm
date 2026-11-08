@@ -2,10 +2,13 @@ import QtQuick
 import QtQuick.Layouts
 import ".."
 
-// Time and date, ticking on the minute
+// Time and date, ticking on the minute. `size` is the time's pixel size (the
+// date follows it); `alignment` lines both up left, center or right
 ColumnLayout {
     id: root
 
+    property real size: Tokens.clockSize
+    property int alignment: Qt.AlignHCenter
     property date now: new Date()
 
     spacing: 0
@@ -19,19 +22,19 @@ ColumnLayout {
     }
 
     Text {
-        Layout.alignment: Qt.AlignHCenter
+        Layout.alignment: root.alignment
         text: Tokens.locale.toString(root.now, Tokens.clockFormat)
         font.family: Tokens.font
-        font.pixelSize: Tokens.clockSize
+        font.pixelSize: root.size
         font.bold: true
         color: Tokens.textColor
     }
 
     Text {
-        Layout.alignment: Qt.AlignHCenter
+        Layout.alignment: root.alignment
         text: Tokens.locale.toString(root.now, Tokens.dateFormat)
         font.family: Tokens.font
-        font.pixelSize: Tokens.dateSize
+        font.pixelSize: Math.max(Tokens.fontSizeLarge, Math.round(root.size / 5))
         color: Tokens.subtextColor
     }
 }

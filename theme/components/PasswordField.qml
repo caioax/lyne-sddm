@@ -10,6 +10,8 @@ import ".."
 ColumnLayout {
     id: root
 
+    property real fieldWidth: Tokens.fieldWidth
+
     spacing: Tokens.spacing
 
     Rectangle {
@@ -18,7 +20,7 @@ ColumnLayout {
         property real shakeX: 0
 
         Layout.alignment: Qt.AlignHCenter
-        implicitWidth: Tokens.fieldWidth
+        implicitWidth: root.fieldWidth
         implicitHeight: Tokens.fieldHeight
         radius: height / 2
         color: Tokens.cardColor

@@ -4,10 +4,10 @@ import QtQuick.Window
 import QtQuick.Layouts
 import "components"
 
-// One per screen. The primary screen shows the lock screen's "center"
-// template: clock, avatar, user and password in the middle, the session
-// bottom left and the power buttons bottom right. Other screens show only
-// the clock (each screen has its own engine, so they can't share the input)
+// One per screen. The primary screen shows the chosen layout (layouts/, the
+// lock screen's templates); other screens show only the clock (each screen
+// has its own engine, so they can't share the input). Keys go to the hidden
+// input below whatever the layout
 Item {
     id: root
 
@@ -43,75 +43,42 @@ Item {
     Background {
         anchors.fill: parent
         revealed: root.shown
+        // Layouts may keep the wallpaper sharp (`blurred`); other screens blur
+        blurred: !primaryScreen || (layout.item?.blurred ?? true)
     }
 
     // Clicks anywhere close the session list and take the keyboard back
     MouseArea {
         anchors.fill: parent
         onClicked: {
-            sessions.open = false;
+            Greeter.sessionsOpen = false;
             input.forceActiveFocus();
         }
     }
 
-    Item {
+    // The primary screen's content: layouts/<Name>.qml from the layout token.
+    // A layout is an Item with `shown` (set here) and, optionally, a
+    // readonly `blurred` (false keeps the wallpaper sharp). A missing or
+    // broken one falls back to center
+    Loader {
+        id: layout
+
         anchors.fill: parent
-        visible: primaryScreen
-        opacity: root.shown ? 1 : 0
+        active: primaryScreen
+        source: Tokens.layoutSource
 
-        Behavior on opacity {
-            NumberAnimation {
-                duration: Tokens.animDurationLong
-                easing.type: Easing.OutCubic
+        onStatusChanged: {
+            if (status === Loader.Error && Tokens.layout !== "center") {
+                console.warn("lyne-sddm: layout", Tokens.layout, "not found, using center");
+                source = Tokens.layoutUrl("center");
             }
         }
 
-        ColumnLayout {
-            anchors.centerIn: parent
-            anchors.verticalCenterOffset: root.shown ? -Tokens.fontSizeIconLarge : 0
-            spacing: Tokens.spacing * 2
-
-            Behavior on anchors.verticalCenterOffset {
-                NumberAnimation {
-                    duration: Tokens.animDurationLong
-                    easing.type: Tokens.animPopupEasing
-                }
-            }
-
-            Clock {
-                Layout.alignment: Qt.AlignHCenter
-            }
-
-            Item {
-                implicitHeight: Tokens.spacing * 2
-            }
-
-            Avatar {
-                Layout.alignment: Qt.AlignHCenter
-                user: Greeter.user
-            }
-
-            UserSwitcher {
-                Layout.alignment: Qt.AlignHCenter
-            }
-
-            PasswordField {
-                Layout.alignment: Qt.AlignHCenter
-            }
-        }
-
-        SessionPicker {
-            id: sessions
-
-            anchors.left: parent.left
-            anchors.bottom: parent.bottom
-            anchors.margins: Tokens.edgeMargin
-        }
-
-        PowerButtons {
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            anchors.margins: Tokens.edgeMargin
+        Binding {
+            target: layout.item
+            property: "shown"
+            value: root.shown
+            when: layout.status === Loader.Ready
         }
     }
 
@@ -151,14 +118,14 @@ Item {
             switch (event.key) {
             case Qt.Key_Return:
             case Qt.Key_Enter:
-                if (sessions.open)
-                    sessions.pick();
+                if (Greeter.sessionsOpen)
+                    Greeter.pickSession();
                 else
                     Greeter.login();
                 break;
             case Qt.Key_Escape:
-                if (sessions.open)
-                    sessions.open = false;
+                if (Greeter.sessionsOpen)
+                    Greeter.sessionsOpen = false;
                 else if (Greeter.selectedId !== "")
                     Greeter.cancelPower();
                 else
@@ -166,11 +133,11 @@ Item {
                 break;
             case Qt.Key_Up:
             case Qt.Key_Down:
-                if (sessions.open)
-                    sessions.move(event.key === Qt.Key_Up ? -1 : 1);
+                if (Greeter.sessionsOpen)
+                    Greeter.moveSession(event.key === Qt.Key_Up ? -1 : 1);
                 break;
             case Qt.Key_F1:
-                sessions.toggle();
+                Greeter.toggleSessions();
                 break;
             case Qt.Key_F2:
                 Greeter.cycleUser(1);

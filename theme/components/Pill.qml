@@ -2,7 +2,8 @@ import QtQuick
 import QtQuick.Layouts
 import ".."
 
-// Rounded chip with an icon and a label, clickable when `interactive`
+// Rounded chip with an icon and a label, clickable when `interactive`. Past
+// `maxWidth` the label elides
 Rectangle {
     id: root
 
@@ -11,10 +12,11 @@ Rectangle {
     property color accent: Tokens.textColor
     property bool interactive: true
     property bool active: false
+    property real maxWidth: Number.POSITIVE_INFINITY
 
     signal clicked
 
-    implicitWidth: row.implicitWidth + Tokens.padding * 4
+    implicitWidth: Math.min(row.implicitWidth + Tokens.padding * 4, maxWidth)
     implicitHeight: Tokens.pillHeight
     radius: height / 2
     color: active || mouse.containsMouse ? Tokens.cardHoverColor : Tokens.cardColor
@@ -40,6 +42,8 @@ Rectangle {
         spacing: Tokens.spacing
 
         Text {
+            id: iconText
+
             visible: root.icon !== ""
             text: root.icon
             font.family: Tokens.font
@@ -48,7 +52,11 @@ Rectangle {
         }
 
         Text {
+            // What maxWidth leaves after the icon and the padding
+            Layout.maximumWidth: root.maxWidth - Tokens.padding * 4 - (iconText.visible ? iconText.implicitWidth + row.spacing : 0)
             text: root.text
+            // Only when cut: the layout rounds a fraction of a pixel off
+            elide: implicitWidth - width > 1 ? Text.ElideRight : Text.ElideNone
             font.family: Tokens.font
             font.pixelSize: Tokens.fontSizeNormal
             color: Tokens.textColor

@@ -6,6 +6,10 @@ password pill and animations.
 
 ## Features
 
+- Three layouts from the lock screen's templates: `center` (clock and
+  password in the middle), `cards` (users, clock and session as glass
+  cards) and `wallpaper` (sharp wallpaper, the password bar rises as you
+  type)
 - Clock and date over the blurred wallpaper
 - Avatar, user switcher and session picker
 - Password field with animated error and a Caps Lock warning
@@ -120,6 +124,17 @@ there); light and dark are just palettes, with no separate mode switch.
 Overrides go in `/var/lib/lyne-sddm/theme.conf.user`: SDDM reads it on top
 of `theme.conf` (through a symlink in the theme dir), and it is the file
 lyne-dots writes when syncing.
+
+The layout is the `layout` key (`center`, `cards` or `wallpaper`; anything
+else shows `center`):
+
+```ini
+[General]
+layout=cards
+```
+
+`theme/presets/` holds the lyne-dots palettes (nord, gruvbox, rose-pine...)
+in the same format: `./test.sh -c theme/presets/nord.conf` previews one.
 
 Maintainers: [docs/aur.md](docs/aur.md) covers checking and publishing the
 package.
