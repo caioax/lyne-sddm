@@ -14,7 +14,9 @@ optdepends=('qt6-imageformats: webp wallpapers')
 provides=("$_name")
 conflicts=("$_name")
 install=lyne-sddm.install
-source=("$_name::git+$url.git")
+# LYNE_SDDM_REF=vX.Y.Z builds that release tag (lyne-dots' stable channel);
+# unset, the latest commit on main, as the AUR builds it
+source=("$_name::git+$url.git${LYNE_SDDM_REF:+#tag=$LYNE_SDDM_REF}")
 sha256sums=('SKIP')
 
 pkgver() {
