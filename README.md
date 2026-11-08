@@ -6,10 +6,12 @@ password pill and animations.
 
 ## Features
 
-- Three layouts from the lock screen's templates: `center` (clock and
-  password in the middle), `cards` (users, clock and session as glass
+- Eight layouts: three from the lock screen's templates, `center` (clock
+  and password in the middle), `cards` (users, clock and session as glass
   cards) and `wallpaper` (sharp wallpaper, the password bar rises as you
-  type)
+  type), and five of its own: `split` (a side panel), `focus` (only a big
+  clock until you type), `corner` (clock and login card in opposite
+  corners), `stacked` (huge hours over minutes) and `panel` (a top bar)
 - Clock and date over the blurred wallpaper
 - Avatar, user switcher and session picker
 - Password field with animated error and a Caps Lock warning
@@ -125,8 +127,8 @@ Overrides go in `/var/lib/lyne-sddm/theme.conf.user`: SDDM reads it on top
 of `theme.conf` (through a symlink in the theme dir), and it is the file
 lyne-dots writes when syncing.
 
-The layout is the `layout` key (`center`, `cards` or `wallpaper`; anything
-else shows `center`):
+The layout is the `layout` key (`center`, `cards`, `wallpaper`, `split`,
+`focus`, `corner`, `stacked` or `panel`; anything else shows `center`):
 
 ```ini
 [General]

@@ -1,24 +1,32 @@
 import QtQuick
+import QtQuick.Effects
 import QtQuick.Layouts
 import ".."
 
 // Time and date, ticking on the minute. `size` is the time's pixel size (the
-// date follows it); `alignment` lines both up left, center or right
+// date follows it); `alignment` lines both up left, center or right;
+// `shadow` lifts it off a sharp wallpaper
 ColumnLayout {
     id: root
 
     property real size: Tokens.clockSize
     property int alignment: Qt.AlignHCenter
-    property date now: new Date()
+    // Drop shadow, for a clock over a sharp wallpaper
+    property bool shadow: false
+    readonly property date now: ticker.now
 
     spacing: 0
 
-    Timer {
-        // Wakes up at the next minute instead of polling every second
-        interval: (60 - root.now.getSeconds()) * 1000 - root.now.getMilliseconds() + 50
-        running: true
-        repeat: true
-        onTriggered: root.now = new Date()
+    layer.enabled: shadow
+    layer.effect: MultiEffect {
+        shadowEnabled: true
+        shadowColor: Tokens.backgroundColor
+        shadowBlur: 1
+        shadowOpacity: Tokens.clockShadow
+    }
+
+    Ticker {
+        id: ticker
     }
 
     Text {

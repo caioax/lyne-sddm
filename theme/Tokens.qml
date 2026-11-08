@@ -59,6 +59,7 @@ QtObject {
     readonly property int blurMax: _int("blurMax")
     readonly property real dim: _real("dim")
     readonly property real dimSharp: _real("dimSharp")
+    readonly property real clockShadow: _real("clockShadow")
 
     // ========================================================================
     // GEOMETRY
@@ -124,6 +125,30 @@ QtObject {
     readonly property real wallpaperClockSize: fontSizeIconLarge * 4.5
     readonly property real wallpaperMargin: spacing * 6
     readonly property real barAvatarSize: fieldHeight
+
+    // "split": a side panel, at least this wide, else this share of the screen
+    readonly property real splitPanelWidth: fieldWidth + edgeMargin * 2
+    readonly property real splitPanelShare: 0.3
+    readonly property real splitClockSize: fontSizeIconLarge * 3.5
+    readonly property real splitAvatarSize: fontSizeIconLarge * 2
+
+    // "focus": a big clock that shrinks once you type
+    readonly property real focusClockSize: fontSizeIconLarge * 6
+    readonly property real focusAvatarSize: fontSizeIconLarge * 2.4
+
+    // "corner": clock top right, login card bottom left
+    readonly property real cornerClockSize: fontSizeIconLarge * 5
+    readonly property real cornerAvatarSize: fontSizeIconLarge * 1.8
+    readonly property real cornerMargin: spacing * 6
+
+    // "stacked": hours over minutes, overlapping a little
+    readonly property real stackedDigitSize: fontSizeIconLarge * 9
+    readonly property real stackedOverlap: fontSizeIconLarge * 1.6
+    readonly property real stackedAvatarSize: fontSizeIconLarge * 2
+
+    // "panel": a top bar and a big avatar
+    readonly property real panelBarHeight: powerBoxSize + padding * 3
+    readonly property real panelAvatarSize: fontSizeIconLarge * 4
 
     // A theme file (relative to the theme dir) or an absolute path as a url
     function path(value: string): url {

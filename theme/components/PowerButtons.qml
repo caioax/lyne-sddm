@@ -13,6 +13,8 @@ ColumnLayout {
     id: root
 
     property bool rows: false
+    // The countdown line under the buttons (off where it has no room)
+    property bool showHint: true
 
     spacing: Tokens.padding
 
@@ -49,7 +51,7 @@ ColumnLayout {
         Layout.maximumWidth: buttons.implicitWidth
         horizontalAlignment: Text.AlignHCenter
         wrapMode: Text.Wrap
-        visible: Greeter.pending !== null && !root.rows
+        visible: Greeter.pending !== null && !root.rows && root.showHint
         text: Greeter.pending ? qsTr("%1 in %2s · esc cancels").arg(Greeter.pending.progress).arg(Math.ceil(Greeter.remaining / 1000)) : ""
         font.family: Tokens.font
         font.pixelSize: Tokens.fontSizeSmall
