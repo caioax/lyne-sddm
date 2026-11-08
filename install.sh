@@ -61,10 +61,22 @@ done
 
 say() { printf '\033[1;34m::\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33mwarning:\033[0m %s\n' "$*" >&2; }
+explained=0
 die() {
     printf '\033[1;31merror:\033[0m %s\n' "$*" >&2
+    explained=1
     exit 1
 }
+
+# A failed step (a cancelled or refused sudo prompt included) stops the
+# script through set -e: say so instead of leaving only that command's output
+failed() {
+    local rc=$1
+    ((rc == 0 || explained)) && return
+    printf '\033[1;31merror:\033[0m %s\n' \
+        "stopped (exit $rc) before the end: the steps after the last \":: \" line were not done; run $cmd again" >&2
+}
+trap 'failed $?' EXIT
 
 # Runs a command as root; under --dry-run it only prints it
 root() {
