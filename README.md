@@ -63,12 +63,25 @@ lyne-sddm                 # create your synced dir and select the theme (asks fo
 pacman owns the theme files; `lyne-sddm` (this repo's `install.sh`) only adds
 what a package can't know: `/var/lib/lyne-sddm` owned by you and
 `/etc/sddm.conf.d/lyne.conf`. `lyne-sddm --uninstall` undoes that, and
-removing the package cleans both up too. It builds from GitHub, so updates
-mean `makepkg -si` again, not just `git pull`.
+removing the package cleans both up too. Updates: see [Updating](#updating).
 
 Use one or the other: `install.sh` refuses to touch a theme pacman owns. To
 switch to the script, `sudo pacman -R lyne-sddm-git` first (it removes
 `/var/lib/lyne-sddm` too), then `./install.sh` and `lyne sddm apply`.
+
+### Updating
+
+| Installed with | Update |
+| --- | --- |
+| the script | `git pull && ./install.sh` in the clone |
+| the package, built from a clone | `git pull && makepkg -si` in the clone |
+| lyne-dots (`lyne sddm install`) | `lyne update` rebuilds it when there is a new version |
+
+The package builds from GitHub, so `makepkg -si` alone already takes the
+latest commit; `git pull` matters when the PKGBUILD itself changed. pacman
+can't tell you about new versions until the package is on the AUR (then
+`yay -Syu --devel` covers it). An update keeps `/var/lib/lyne-sddm` and
+your choices: no need to run `lyne-sddm` again.
 
 ### Syncing with lyne-dots
 
